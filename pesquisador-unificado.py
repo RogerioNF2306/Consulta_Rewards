@@ -17,7 +17,11 @@ from config import (
     DELAY_CLICK_MIN, DELAY_CLICK_MAX,
     MOUSE_OFFSET_X, MOUSE_OFFSET_Y,
     LOCALE, TIMEZONE, URL_BING,
-    obter_user_agent_por_perfil, obter_hardware_perfil
+    obter_user_agent_por_perfil, obter_hardware_perfil,
+    X_INICIAL_MANUAL, Y_INICIAL_MANUAL,
+    X_LIMPAR_MANUAL, Y_LIMPAR_MANUAL,
+    X_CAIXA_AUTOMATICO, Y_CAIXA_AUTOMATICO,
+    X_REPETIR_AUTOMATICO, Y_REPETIR_AUTOMATICO
 )
 
 # ==============================================================================
@@ -98,7 +102,7 @@ class StatusHUD:
         )
         self.label_status_tempo.pack(pady=(2, 8))
 
-    def atualizar(self, atual, total, termo, status_tempo=""):
+    def actualizar(self, atual, total, termo, status_tempo=""):
         faltam_busca = total - atual
         faltam_pausa = 5 - (atual % 5) if atual % 5 != 0 else 5
         
@@ -156,14 +160,14 @@ def execucao_manual_worker(quantidade, termo, x_ini, y_ini, x_limp, y_limp, hud_
         time.sleep(2) 
         for i in range(1, quantidade + 1):
             termo_final = gerar_termo_organico(termo)
-            hud_obj.atualizar(i, quantidade, termo_final, "Status: Digitando...")
+            hud_obj.actualizar(i, quantidade, termo_final, "Status: Digitando...")
 
             if i > 1 and (i - 1) % 5 == 0:
                 tempo_pausa = random.randint(DELAY_PAUSA_MIN, DELAY_PAUSA_MAX)
                 for seg in range(tempo_pausa, 0, -1):
-                    hud_obj.atualizar(i-1, quantidade, "---", f"⚠️ PAUSA SEGURANÇA: {seg}s")
+                    hud_obj.actualizar(i-1, quantidade, "---", f"⚠️ PAUSA SEGURANÇA: {seg}s")
                     time.sleep(1)
-                hud_obj.atualizar(i, quantidade, termo_final, "Status: Retomando...")
+                hud_obj.actualizar(i, quantidade, termo_final, "Status: Retomando...")
 
             pyautogui.press('home')
             time.sleep(random.uniform(DELAY_ENTRE_BUSCAS_MIN, DELAY_ENTRE_BUSCAS_MAX))
@@ -181,7 +185,7 @@ def execucao_manual_worker(quantidade, termo, x_ini, y_ini, x_limp, y_limp, hud_
             
             espera_leitura = random.randint(DELAY_LEITURA_MIN, DELAY_LEITURA_MAX)
             for seg in range(espera_leitura, 0, -1):
-                hud_obj.atualizar(i, quantidade, termo_final, f"Status: Lendo página ({seg}s)")
+                hud_obj.actualizar(i, quantidade, termo_final, f"Status: Lendo página ({seg}s)")
                 time.sleep(1)
 
             if random.choice([True, False]):
@@ -222,56 +226,89 @@ def execucao_hibrida_playwright_worker(quantidade, termo, nome_perfil, user_data
             page.goto(URL_BING, wait_until="networkidle")
             time.sleep(3)
 
-            # --- MAPEAMENTO DA CAIXA DE BUSCA COM SEGURANÇA ---
-            # Encontra a posição exata da caixa na tela de forma nativa para passar as coordenadas ao PyAutoGUI
-            search_box = page.locator("input[name='q'], #sb_form_q").first
-            search_box.wait_for(state="visible", timeout=15000)
-            
-            box_bounding = search_box.bounding_box()
-            # Ponto central da caixa baseado na viewport maximizada
-            box_x = int(box_bounding["x"] + (box_bounding["width"] / 2))
-            box_y = int(box_bounding["y"] + (box_bounding["height"] / 2))
+            # Carrega posições salvas do ambiente de configuração
+            box_inicial_x = X_CAIXA_AUTOMATICO
+            box_inicial_y = Y_CAIXA_AUTOMATICO
+            box_repetir_x = X_REPETIR_AUTOMATICO
+            box_repetir_y = Y_REPETIR_AUTOMATICO
+
+            # Contingência dinâmica do DOM para o primeiro clique caso o .env esteja zerado
+            if box_inicial_x == 0 or box_inicial_y == 0:
+                print("⚠️ Coordenadas iniciais do .env ausentes. Executando varredura dinâmica no DOM...")
+                try:
+                    search_box = page.locator("input[name='q'], #sb_form_q").first
+                    search_box.wait_for(state="visible", timeout=5000)
+                    box_bounding = search_box.bounding_box()
+                    if box_bounding:
+                        box_inicial_x = int(box_bounding["x"] + (box_bounding["width"] / 2))
+                        box_inicial_y = int(box_bounding["y"] + (box_bounding["height"] / 2))
+                except Exception as dom_err:
+                    print(f"❌ Falha crítica de varredura na tela inicial: {dom_err}")
+                    return
 
             for i in range(1, quantidade + 1):
                 termo_final = gerar_termo_organico(termo)
-                hud_obj.atualizar(i, quantidade, termo_final, "Status: Movendo Mouse...")
+                hud_obj.actualizar(i, quantidade, termo_final, "Status: Movendo Mouse...")
 
-                # Pausa de Segurança Estrutural
+                # Pausa de Segurança Estrutural a cada 5 iterações
                 if i > 1 and (i - 1) % 5 == 0:
                     tempo_pausa = random.randint(DELAY_PAUSA_MIN, DELAY_PAUSA_MAX)
                     for seg in range(tempo_pausa, 0, -1):
-                        hud_obj.atualizar(i-1, quantidade, "---", f"⚠️ PAUSA SEGURANÇA: {seg}s")
+                        hud_obj.actualizar(i-1, quantidade, "---", f"⚠️ PAUSA SEGURANÇA: {seg}s")
                         time.sleep(1)
-                    hud_obj.atualizar(i, quantidade, termo_final, "Status: Retomando...")
+                    hud_obj.actualizar(i, quantidade, termo_final, "Status: Retomando...")
 
-                # 1. Move o mouse real até a caixa mapeada e clica
-                mover_mouse_humano(box_x, box_y)
+                # 1. Determina dinamicamente o alvo com base no ciclo de buscas
+                if i == 1:
+                    target_x, target_y = box_inicial_x, box_inicial_y
+                else:
+                    # Se houver coordenada consecutiva mapeada, utiliza ela prioritariamente
+                    if box_repetir_x != 0 and box_repetir_y != 0:
+                        target_x, target_y = box_repetir_x, box_repetir_y
+                    else:
+                        # Fallback dinâmico para a barra superior na tela de resultados caso o .env consecutivo não esteja calibrado
+                        try:
+                            search_box = page.locator("input[name='q'], #sb_form_q").first
+                            box_bounding = search_box.bounding_box()
+                            if box_bounding:
+                                target_x = int(box_bounding["x"] + (box_bounding["width"] / 2))
+                                target_y = int(box_bounding["y"] + (box_bounding["height"] / 2))
+                            else:
+                                target_x, target_y = box_inicial_x, box_inicial_y
+                        except Exception:
+                            target_x, target_y = box_inicial_x, box_inicial_y
+
+                # Executa o deslocamento físico do hardware simulado e clica
+                mover_mouse_humano(target_x, target_y)
                 clicar_humano()
                 time.sleep(random.uniform(0.5, 1.0))
 
-                # 2. Executa comando de teclado via OS para limpar o campo
+                # 2. Executa comando de teclado via OS para limpar o campo de busca
                 pyautogui.hotkey('ctrl', 'a')
                 pyautogui.press('backspace')
                 time.sleep(random.uniform(0.4, 0.8))
 
                 # 3. Digitação Humana via PyAutoGUI (Teclado Físico do OS)
-                hud_obj.atualizar(i, quantidade, termo_final, "Status: Digitando...")
+                hud_obj.actualizar(i, quantidade, termo_final, "Status: Digitando...")
                 digitar_humano(termo_final)
                 time.sleep(random.uniform(0.3, 0.7))
                 pyautogui.press('enter')
                 
-                # 4. Aguarda carregar os resultados
-                page.wait_for_load_state("domcontentloaded")
+                # 4. Aguarda carregar os resultados da pesquisa
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=5000)
+                except Exception:
+                    pass  # Avança se houver lentidão na resposta do servidor da Microsoft
                 
-                # 5. Tempo de leitura simulado com rolagem de página real via Hardware
+                # 5. Tempo de leitura simulado com rolagem de página via hardware externo
                 espera_leitura = random.randint(DELAY_LEITURA_MIN, DELAY_LEITURA_MAX)
                 for seg in range(espera_leitura, 0, -1):
-                    hud_obj.atualizar(i, quantidade, termo_final, f"Status: Lendo página ({seg}s)")
-                    if seg == espera_leitura - 2:  # Faz um scroll no meio da leitura
+                    hud_obj.actualizar(i, quantidade, termo_final, f"Status: Lendo página ({seg}s)")
+                    if seg == espera_leitura - 2:  # Efetua scroll orgânico na metade do ciclo de leitura
                         pyautogui.scroll(random.randint(-400, -150))
                     time.sleep(1)
 
-                # Volta para o topo preparando a próxima rodada
+                # Retorna ao topo preparando a página para a próxima iteração
                 pyautogui.press('home')
                 time.sleep(random.uniform(DELAY_ENTRE_BUSCAS_MIN, DELAY_ENTRE_BUSCAS_MAX))
 
@@ -283,14 +320,13 @@ def execucao_hibrida_playwright_worker(quantidade, termo, nome_perfil, user_data
 
 
 def modo_manual_edge_externo():
-    X_INICIAL, Y_INICIAL = 1114, 362
-    X_LIMPAR, Y_LIMPAR = 898, 197
     print("\n" + "="*50)
     print(f"MODO MANUAL (EDGE) | TERMO: {TERMO_BASE}")
+    print(f"📍 Coordenadas Injetadas: Inicial({X_INICIAL_MANUAL},{Y_INICIAL_MANUAL}) | Limpar({X_LIMPAR_MANUAL},{Y_LIMPAR_MANUAL})")
     input("👉 Prepare o Edge no Bing e pressione [ENTER]...")
     
     hud_main = StatusHUD(modo="Manual (Edge)", conta="Perfil Local")
-    t = Thread(target=execucao_manual_worker, args=(QUANTIDADE_BUSCAS, TERMO_BASE, X_INICIAL, Y_INICIAL, X_LIMPAR, Y_LIMPAR, hud_main))
+    t = Thread(target=execucao_manual_worker, args=(QUANTIDADE_BUSCAS, TERMO_BASE, X_INICIAL_MANUAL, Y_INICIAL_MANUAL, X_LIMPAR_MANUAL, Y_LIMPAR_MANUAL, hud_main))
     t.start()
     hud_main.root.mainloop()
 

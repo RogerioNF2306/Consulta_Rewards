@@ -63,20 +63,32 @@ MOUSE_OFFSET_X = int(os.getenv('MOUSE_OFFSET_X', '5'))
 MOUSE_OFFSET_Y = int(os.getenv('MOUSE_OFFSET_Y', '5'))
 
 def obter_mouse_offsets():
-    """Retorna offsets X e Y para movimento de mouse"""
     return MOUSE_OFFSET_X, MOUSE_OFFSET_Y
 
 def obter_mouse_durations():
-    """Retorna durações de movimento do mouse (min, max)"""
     duracao_str = os.getenv('MOUSE_DURATION_MOVE', '0.6,1.1')
     min_dur, max_dur = map(float, duracao_str.split(','))
     return min_dur, max_dur
 
 def obter_mouse_adjust_durations():
-    """Retorna durações de ajuste do mouse (min, max)"""
     duracao_str = os.getenv('MOUSE_DURATION_ADJUST', '0.1,0.3')
     min_dur, max_dur = map(float, duracao_str.split(','))
     return min_dur, max_dur
+
+# ============================================================================
+# CONFIGURAÇÕES DE COORDENADAS (GRAVADAS PELO UTENSÍLIO POSITION)
+# ============================================================================
+# Modo 1: Manual (Edge Externo)
+X_INICIAL_MANUAL = int(os.getenv('X_INICIAL_MANUAL', '1114'))
+Y_INICIAL_MANUAL = int(os.getenv('Y_INICIAL_MANUAL', '362'))
+X_LIMPAR_MANUAL = int(os.getenv('X_LIMPAR_MANUAL', '898'))
+Y_LIMPAR_MANUAL = int(os.getenv('Y_LIMPAR_MANUAL', '197'))
+
+# Modo 2: Automático Híbrido (Playwright Fallback Coords)
+X_CAIXA_AUTOMATICO = int(os.getenv('X_CAIXA_AUTOMATICO', '0'))
+Y_CAIXA_AUTOMATICO = int(os.getenv('Y_CAIXA_AUTOMATICO', '0'))
+X_REPETIR_AUTOMATICO = int(os.getenv('X_REPETIR_AUTOMATICO', '0'))
+Y_REPETIR_AUTOMATICO = int(os.getenv('Y_REPETIR_AUTOMATICO', '0'))
 
 # ============================================================================
 # URLs
@@ -106,20 +118,17 @@ def exibir_configuracoes():
         print(f"USER_AGENTS_TOTAL: {len(obter_lista_user_agents())}")
         print(f"URL_REWARDS: {URL_REWARDS}")
         print(f"URL_BING: {URL_BING}")
+        print("-" * 60)
+        print("COORDENADAS DE HARDWARE DETECTADAS:")
+        print(f" -> Manual Inicial:  X={X_INICIAL_MANUAL}, Y={Y_INICIAL_MANUAL}")
+        print(f" -> Manual Limpar:   X={X_LIMPAR_MANUAL}, Y={Y_LIMPAR_MANUAL}")
+        print(f" -> Auto Inicial:    X={X_CAIXA_AUTOMATICO}, Y={Y_CAIXA_AUTOMATICO}")
+        print(f" -> Auto Consecutivo:X={X_REPETIR_AUTOMATICO}, Y={Y_REPETIR_AUTOMATICO}")
+        print("-" * 60)
         print(f"DEBUG: {DEBUG}")
         print(f"HEADLESS: {HEADLESS}")
         print("="*60 + "\n")
 
 if __name__ == "__main__":
-    # Test: Exibir configurações
+    DEBUG = True
     exibir_configuracoes()
-    
-    # Test: Obter user-agents
-    print(f"Total de User-Agents: {len(obter_lista_user_agents())}\n")
-    
-    # Test: Obter hardware por perfil
-    for perfil_id in ['1', '2', '3', '4']:
-        cores, mem = obter_hardware_perfil(perfil_id)
-        ua = obter_user_agent_por_perfil(perfil_id)
-        print(f"Perfil {perfil_id}: {cores} cores, {mem}GB RAM")
-        print(f"  UA: {ua[:70]}...")
