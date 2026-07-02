@@ -7,8 +7,12 @@ import config
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Prioriza o .env na raiz do projeto e mantem compatibilidade com a estrutura antiga.
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+LEGACY_ENV_PATH = os.path.join(BASE_DIR, "config", ".env")
+
 # Carrega as variáveis do arquivo .env local do projeto
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+load_dotenv(dotenv_path=ENV_PATH if os.path.exists(ENV_PATH) else LEGACY_ENV_PATH)
 
 XL_UP = -4162
 
@@ -97,7 +101,7 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
         try:
             excel_app = win32com.client.GetActiveObject("Excel.Application")
             print(f"{config.GREEN}🔄 Conectado à instância ativa do Excel (Planilha Aberta).{config.RESET}")
-        except:
+        except Exception:
             # Caso esteja fechado, abre uma instância oculta em segundo plano
             excel_app = win32com.client.Dispatch("Excel.Application")
             excel_app.Visible = False
