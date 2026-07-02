@@ -8,7 +8,7 @@ O projeto hoje possui dois usos principais:
 - simular resgates para valores fixos e personalizados, mostrando quantos pontos são necessários e se o saldo atual é suficiente.
 
 O projeto agora privilegia um modo de navegação conservador, evitando spoofing agressivo de fingerprint e flags de navegador incomuns.
-
+ 
 ## O que o projeto faz hoje
 
 - abre um contexto persistente do Chromium usando a pasta microsoft_session;
