@@ -1,11 +1,14 @@
 import os
 from datetime import datetime
+import pywintypes
 import win32com.client
 from dotenv import load_dotenv
 import config
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Carrega as variáveis do arquivo .env local do projeto
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 XL_UP = -4162
 
@@ -55,7 +58,7 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
     - Coluna 1 (A): Data do Registro
     - Coluna 2 (B): Pontos Pesquisa Bing
     - Coluna 3 (C): Pontos Ofertas
-    - Coluna 4 (D): [PULADO] - Preserva Fórmulas Existentes
+    - Coluna 4 (D): [PULADO] - Soma dos pontos no dia (calculado internamente)
     - Coluna 5 (E): Pontos do Mês
     - Coluna 6 (F): Pontos do Ano
     - Coluna 7 (G): Pontos Totais da Conta
@@ -87,6 +90,7 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
     excel_app = None
     workbook = None
     fechar_ao_final = False
+    macro_salvou = False
 
     try:
         # Tenta se atrelar a um Excel que já esteja aberto pelo usuário
@@ -107,13 +111,14 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
         else:
             workbook = excel_app.Workbooks.Open(caminho_excel)
 
-        # Captura a data atual formatada para envio à macro
-        data_hoje = datetime.now().strftime("%d/%m/%Y")
+        # Envia apenas a data, sem componente de hora, para evitar serial com timestamp no Excel.
+        data_hoje_dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        data_hoje = pywintypes.Time(data_hoje_dt)
 
         print(f"{config.YELLOW}⏳ Invocando procedimento interno VBA para atualização segura de dados...{config.RESET}")
         
         # Executa a macro enviando dinamicamente o nome da aba lida do .env e os pontos coletados
-        workbook.Application.Run(
+        macro_salvou = bool(workbook.Application.Run(
             f"'{workbook.Name}'!{nome_macro}",
             nome_aba,
             data_hoje, 
@@ -122,7 +127,11 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
             int(pontos_mes), 
             int(pontos_ano), 
             int(pontos_totais)
-        )
+        ))
+
+        if not macro_salvou:
+            print(f"{config.RED}❌ [EXCEL] A macro '{nome_macro}' sinalizou falha ao salvar os dados.{config.RESET}")
+            return False
         
         print(
             f"{config.GREEN}✅ [EXCEL] Macro executada com sucesso via VBA na aba '{nome_aba}'!{config.RESET}"
@@ -136,7 +145,7 @@ def salvar_dados_excel(pontos_pesquisa: int, pontos_ofertas: int, pontos_mes: in
     finally:
         # Finaliza os objetos COM de forma limpa para não deixar processos fantasmas no Windows
         if workbook and fechar_ao_final:
-            workbook.Close(SaveChanges=True)
+            workbook.Close(SaveChanges=False)
         if excel_app and fechar_ao_final:
             excel_app.Quit()
         

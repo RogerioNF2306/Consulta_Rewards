@@ -1,17 +1,41 @@
 Attribute VB_Name = "M�dulo3"
 
-Private Function DataTextoParaDate(ByVal dataTexto As String) As Date
+Private Function DataValorParaDate(ByVal dataValor As Variant) As Date
     Dim partesData As Variant
+    Dim dataTexto As String
+
+    If IsDate(dataValor) Then
+        DataValorParaDate = DateValue(CDate(dataValor))
+        Exit Function
+    End If
+
+    dataTexto = Trim$(CStr(dataValor))
+    If Len(dataTexto) = 0 Then
+        DataValorParaDate = Date
+        Exit Function
+    End If
 
     partesData = Split(Trim$(dataTexto), "/")
     If UBound(partesData) = 2 Then
-        DataTextoParaDate = DateSerial(CInt(partesData(2)), CInt(partesData(1)), CInt(partesData(0)))
-    Else
-        DataTextoParaDate = CDate(dataTexto)
+        DataValorParaDate = DateSerial(CInt(partesData(2)), CInt(partesData(1)), CInt(partesData(0)))
+        Exit Function
     End If
+
+    partesData = Split(Trim$(dataTexto), "-")
+    If UBound(partesData) = 2 Then
+        If Len(partesData(0)) = 4 Then
+            DataValorParaDate = DateSerial(CInt(partesData(0)), CInt(partesData(1)), CInt(partesData(2)))
+        Else
+            DataValorParaDate = DateSerial(CInt(partesData(2)), CInt(partesData(1)), CInt(partesData(0)))
+        End If
+        Exit Function
+    End If
+
+    DataValorParaDate = DateValue(CDate(dataTexto))
 End Function
 
-Sub RegistrarPontosEFormatar(ByVal nomeAba As String, ByVal dataAtual As String, ByVal pesquisa As Long, ByVal ofertas As Long, ByVal mes As Long, ByVal ano As Long, ByVal totais As Long)
+Public Function RegistrarPontosEFormatar(ByVal nomeAba As String, ByVal dataAtual As Variant, ByVal pesquisa As Long, ByVal ofertas As Long, ByVal mes As Long, ByVal ano As Long, ByVal totais As Long) As Boolean
+    On Error GoTo ErrHandler
     Dim ws As Worksheet
     Dim row As Long
     Dim linhaExistente As Long
@@ -23,6 +47,7 @@ Sub RegistrarPontosEFormatar(ByVal nomeAba As String, ByVal dataAtual As String,
     Dim dataRegistro As Date
     Dim dataTextoNormalizada As String
     Dim linhaAlvo As Long
+    RegistrarPontosEFormatar = False
 
     ' Configura a planilha de destino dinamicamente com base no .env mapeado pelo Python
     On Error Resume Next
@@ -54,7 +79,7 @@ Sub RegistrarPontosEFormatar(ByVal nomeAba As String, ByVal dataAtual As String,
 
     ' Converte o texto dd/mm/aaaa recebido do Python em uma data real, evitando
     ' que o Excel interprete a string pela localidade errada.
-    dataRegistro = DataTextoParaDate(dataAtual)
+    dataRegistro = DataValorParaDate(dataAtual)
     dataTextoNormalizada = Format$(dataRegistro, "dd/mm/yyyy")
 
     ' --- VERIFICAÇÃO DE DATA EXISTENTE (Evita duplicados) ---
@@ -116,4 +141,13 @@ Sub RegistrarPontosEFormatar(ByVal nomeAba As String, ByVal dataAtual As String,
 
     ' For�a o salvamento seguro do arquivo em background
     ThisWorkbook.Save
-End Sub
+    RegistrarPontosEFormatar = True
+    Exit Function
+
+ErrHandler:
+    On Error Resume Next
+    If Not ws Is Nothing Then
+        ws.Range("Z1").Value = "Erro RegistrarPontosEFormatar: " & Err.Number & " - " & Err.Description
+    End If
+    RegistrarPontosEFormatar = False
+End Function
