@@ -16,9 +16,10 @@ BLUE = "\033[94m"
 # ============================================================
 REWARDS_BASE_URL = "https://rewards.bing.com"
 URL_EARN = f"{REWARDS_BASE_URL}/earn"                     # Página com a tabela de ganhos (Atividade de hoje)
-URL_DASHBOARD = URL_EARN                                   # Alias para compatibilidade com código legado
-URL_RESGATE_ALVO = f"{REWARDS_BASE_URL}/redeem"  # Página genérica de resgate para evitar 404 em SKUs específicos
-URL_RESGATE_SKU = os.getenv("REWARDS_SKU_URL", f"{REWARDS_BASE_URL}/redeem/sku/001409000021")
+URL_DASHBOARD = f"{REWARDS_BASE_URL}/dashboard"           # Painel principal após login
+URL_LOGIN = "https://login.live.com/"
+URL_RESGATE_ALVO = f"{REWARDS_BASE_URL}/redeem/sku/000409000023"
+URL_RESGATE_SKU = os.getenv("REWARDS_SKU_URL", f"{REWARDS_BASE_URL}/redeem/sku/000409000023")
 
 # ============================================================
 # 🕒 Configurações de Timeout e Navegador

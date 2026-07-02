@@ -12,6 +12,9 @@ import config
 import utils
 from excel_manager import salvar_dados_excel
 
+# Cache simples para evitar reaplicar stealth na mesma page a cada navegação.
+_stealth_status_por_pagina = {}
+
 # ============================================================
 # 🔥 INICIALIZAÇÃO OBRIGATÓRIA DOS SELETORES
 # Garante que o arquivo 'seletores.js' seja carregado antes de qualquer operação.
@@ -24,9 +27,31 @@ async def human_delay(page, min_sec=1.5, max_sec=3.5):
     await asyncio.sleep(random.uniform(min_sec, max_sec))
 
 
+async def aplicar_stealth_se_disponivel(page):
+    """Aplica stealth na page uma única vez, se a biblioteca estiver disponível."""
+    page_id = id(page)
+    if page_id in _stealth_status_por_pagina:
+        return _stealth_status_por_pagina[page_id]
+
+    if stealth_async is None:
+        _stealth_status_por_pagina[page_id] = False
+        return False
+
+    try:
+        await stealth_async(page)
+        _stealth_status_por_pagina[page_id] = True
+        print(f"{config.GREEN}🕵️ Stealth aplicado na sessão atual.{config.RESET}")
+        return True
+    except Exception as e:
+        _stealth_status_por_pagina[page_id] = False
+        print(f"{config.YELLOW}⚠️ Falha ao aplicar stealth: {e}{config.RESET}")
+        return False
+
+
 async def navegar_para_url(page, url, timeout=60000):
     """Navega para uma URL e registra o status de resposta."""
     try:
+        await aplicar_stealth_se_disponivel(page)
         resposta = await page.goto(url, wait_until="networkidle", timeout=timeout)
         if resposta and resposta.status >= 400:
             print(f"{config.YELLOW}⚠️ A página retornou status {resposta.status} para {url}{config.RESET}")
@@ -38,12 +63,25 @@ async def navegar_para_url(page, url, timeout=60000):
 
 async def garantir_login(page, destino_url=None):
     """Verifica se a página de login foi exibida e aguarda a conclusão do acesso."""
-    if any(host in page.url for host in ("login.live.com", "login.microsoftonline.com", "signin.live.com")):
+    if destino_url is None:
+        destino_url = config.URL_DASHBOARD
+
+    hosts_login = ("login.live.com", "login.microsoftonline.com", "signin.live.com")
+    if any(host in page.url for host in hosts_login):
         print(f"\n🔒 {config.YELLOW}[SESSÃO EXPIRADA]{config.RESET} Autenticação manual necessária.")
         try:
+            # Garante o ponto de login solicitado quando a sessão expirar.
+            if "login.live.com" not in page.url:
+                await navegar_para_url(page, config.URL_LOGIN, timeout=config.TIMEOUT_LOGIN_MS)
+
             await page.wait_for_url("**/rewards.bing.com/**", timeout=config.TIMEOUT_LOGIN_MS)
             await page.wait_for_load_state("networkidle", timeout=30000)
             print(f"{config.GREEN}✅ Login detectado!{config.RESET}")
+
+            if destino_url:
+                await navegar_para_url(page, destino_url)
+                await page.wait_for_load_state("networkidle", timeout=30000)
+
             return True
         except asyncio.TimeoutError:
             print(f"{config.RED}❌ Tempo de login esgotado. Abortando.{config.RESET}")
@@ -422,8 +460,14 @@ async def coletar_dados_earn(page):
         return None
 
     await human_delay(page, 1.5, 2.5)
-    if not await garantir_login(page):
+    if not await garantir_login(page, destino_url=config.URL_DASHBOARD):
         return None
+
+    # Após relogin, retoma explicitamente o fluxo normal no /earn.
+    resposta = await navegar_para_url(page, config.URL_EARN)
+    if resposta is None:
+        return None
+    await human_delay(page, 1, 2)
 
     dados_brutos = await extrair_dados_dashboard_excel(page)
     if dados_brutos["pesquisa"] == "0" and dados_brutos["ofertas"] == "0":
@@ -484,10 +528,19 @@ async def verificar_site_e_atualizar():
 
         try:
             print(f"{config.YELLOW}⏳ Navegando para /earn...{config.RESET}")
-            await navegar_para_url(page, config.URL_EARN)
+            resposta_earn = await navegar_para_url(page, config.URL_EARN)
+            if resposta_earn is None:
+                print(f"{config.RED}❌ Não foi possível carregar /earn. Encerrando fluxo.{config.RESET}")
+                await context.close()
+                return
             await human_delay(page, 2, 3)
 
-            if not await garantir_login(page):
+            if not await garantir_login(page, destino_url=config.URL_DASHBOARD):
+                await context.close()
+                return
+            resposta_earn = await navegar_para_url(page, config.URL_EARN)
+            if resposta_earn is None:
+                print(f"{config.RED}❌ Não foi possível retomar /earn após login.{config.RESET}")
                 await context.close()
                 return
             await human_delay(page, 2, 3)

@@ -56,6 +56,8 @@ async def main():
             user_data_dir=user_data_dir,
         )
 
+        await scraper.aplicar_stealth_se_disponivel(page)
+
         print(f"{YELLOW}⏳ Verificando autenticação...{RESET}")
         resposta = await scraper.navegar_para_url(page, url_resgate)
         if resposta and resposta.status == 404:
@@ -64,15 +66,15 @@ async def main():
 
         await scraper.human_delay(page, 1, 2)
 
-        if "login.live.com" in page.url:
-            print(f"{RED}🔒 Conta deslogada! Faça login manualmente no navegador.{RESET}")
-            try:
-                await page.wait_for_url("**/rewards.bing.com/**", timeout=180000)
-                print(f"{GREEN}✅ Login detectado!{RESET}")
-            except asyncio.TimeoutError:
-                print(f"{RED}❌ Tempo de login esgotado. Encerrando.{RESET}")
-                await context.close()
-                return
+        if not await scraper.garantir_login(page, destino_url=config.URL_DASHBOARD):
+            await context.close()
+            return
+
+        # Retoma a trilha padrao apos login: /earn e depois /redeem SKU.
+        await scraper.navegar_para_url(page, config.URL_EARN)
+        await scraper.human_delay(page, 1, 2)
+        await scraper.navegar_para_url(page, url_resgate)
+        await scraper.human_delay(page, 1, 2)
 
         # Atualiza seletores com os elementos reais das paginas antes de iniciar o menu.
         await scraper.sincronizar_seletores_com_site(page, url_resgate=url_resgate)

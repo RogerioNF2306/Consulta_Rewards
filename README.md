@@ -1,62 +1,73 @@
-# Central Rewards
+# Consulta Rewards
 
-Automação em Python para consultar pontos do Microsoft Rewards com Playwright, reaproveitando uma sessão persistente do navegador e integrando os resultados a uma planilha Excel com macro VBA.
+Automacao em Python para consultar pontos do Microsoft Rewards com Playwright, reaproveitando uma sessao persistente de navegador e salvando os dados em planilha Excel (.xlsm) via macro VBA.
 
-O projeto hoje possui dois usos principais:
+## Versao atual
 
-- coletar métricas do painel de ganhos do Rewards e salvar na planilha;
-- simular resgates para valores fixos e personalizados, mostrando quantos pontos são necessários e se o saldo atual é suficiente.
+- Projeto em estado final de uso para operacao local no Windows.
+- Fluxo principal com menu em terminal (coleta + consulta de resgate).
+- Fluxo alternativo autonomo em `scraper.py`.
+- Stealth habilitado no scraping com fallback seguro (se a biblioteca nao estiver instalada, o projeto continua executando).
 
-O projeto agora privilegia um modo de navegação conservador, evitando spoofing agressivo de fingerprint e flags de navegador incomuns.
- 
-## O que o projeto faz hoje
+## O que o projeto faz
 
-- abre um contexto persistente do Chromium usando a pasta microsoft_session;
-- tenta reutilizar login já existente e, se a sessão tiver expirado, aguarda login manual por até 3 minutos;
-- acessa a página de ganhos em https://rewards.bing.com/earn;
-- extrai Pesquisa do Bing, Ofertas, Este mês, Este ano e o total de pontos da conta;
-- acessa a página de resgate para consultar valores pré-definidos e personalizados;
-- salva os dados coletados em uma planilha .xlsm via automação COM do Excel;
-- sincroniza e persiste seletores em seletores.js para reduzir quebra por mudanças simples de DOM.
+- abre Chromium com perfil persistente em `microsoft_session/`;
+- tenta reaproveitar login existente e aguarda login manual quando necessario;
+- extrai metricas da pagina `/earn`:
+     - Pesquisa do Bing
+     - Ofertas
+     - Este mes
+     - Este ano
+     - Pontos totais da conta
+- consulta valores de resgate (fixos e personalizados) na pagina `/redeem`;
+- informa pontos necessarios, pontos faltantes e se o saldo atual cobre o resgate;
+- salva dados no Excel chamando macro VBA por automacao COM;
+- sincroniza e persiste seletores em `seletores.js`.
 
-## Estrutura real do projeto
+## Estrutura do projeto
 
 ```text
-config.py              Constantes globais, URLs, timeouts, perfil persistente e seletores base
-consulta-rewards.py    Interface principal em terminal com menu de coleta e consulta de resgate
-scraper.py             Fluxos de navegação, login, extração, resgate e sincronização de seletores
-utils.py               Helpers de seletores, anti-detecção, perfil persistente e parsing de pontos
-excel_manager.py       Integração com Excel via win32com e chamada da macro VBA
-seletores.js           Cache persistido dos seletores atualmente válidos
-iniciar.bat            Atalho em lote para executar a automação no Windows
-microsoft_session/     Perfil persistente do Chromium usado pelo Playwright
+config.py              Configuracoes globais (URLs, timeouts, sessao, seletores-base)
+consulta-rewards.py    Entrada principal com menu no terminal
+scraper.py             Fluxos de navegacao, extracao, resgate e sincronizacao
+utils.py               Helpers de contexto Playwright, seletores e parsing
+excel_manager.py       Integracao com Excel (win32com) e execucao da macro
+seletores.js           Cache de seletores dinamicos
+Consulta Rewards.bat   Atalho para execucao no Windows
+microsoft_session/     Perfil persistente do Chromium
+VBA do Projeto.bas     Modulo VBA de referencia da planilha
 ```
 
 ## Requisitos
 
 - Windows
-- Python 3.10 ou superior
-- Microsoft Excel instalado localmente
-- Uma planilha .xlsm que contenha a macro VBA RegistrarPontosEFormatar
+- Python 3.10+
+- Microsoft Excel instalado
+- Planilha `.xlsm` existente com macro `RegistrarPontosEFormatar`
 - Conta Microsoft com acesso ao Rewards
 
-## Dependências reais
+## Instalacao
 
-O código atual usa estas bibliotecas Python:
+Instale as dependencias:
 
 ```bash
-pip install playwright playwright-stealth pywin32 python-dotenv
+pip install playwright pywin32 python-dotenv playwright-stealth
 ```
 
-Depois instale o navegador do Playwright:
+Instale o navegador do Playwright:
 
 ```bash
 playwright install chromium
 ```
 
-## Configuração
+Observacao sobre stealth:
 
-Crie um arquivo .env na raiz do projeto com pelo menos:
+- `playwright-stealth` e recomendado para mais estabilidade contra deteccao de automacao.
+- Se nao estiver instalado, o projeto continua rodando (com menor robustez anti-bot).
+
+## Configuracao (.env)
+
+Crie um arquivo `.env` na raiz com:
 
 ```env
 EXCEL_PATH=C:\caminho\para\sua_planilha.xlsm
@@ -64,7 +75,7 @@ EXCEL_SHEET=Rewards
 EXCEL_MACRO_NAME=RegistrarPontosEFormatar
 ```
 
-Variáveis opcionais úteis:
+Variaveis opcionais:
 
 ```env
 REWARDS_SESSION_DIR=C:\caminho\privado\microsoft_session
@@ -74,101 +85,80 @@ REWARDS_USER_AGENT=
 REWARDS_ACCEPT_LANGUAGE=pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
 ```
 
-Observações importantes:
+Notas:
 
-- EXCEL_PATH precisa apontar para um arquivo .xlsm já existente;
-- a macro VBA chamada pelo Python pode ser configurada por EXCEL_MACRO_NAME e, por padrão, é RegistrarPontosEFormatar;
-- sem Excel instalado no Windows o módulo excel_manager.py não funciona;
-- se REWARDS_SESSION_DIR não for informado, o projeto usa a pasta local microsoft_session na raiz.
-- se REWARDS_USER_AGENT ficar vazio, o Playwright usa o user agent natural do navegador em vez de forçar um valor fixo.
+- `EXCEL_PATH` deve apontar para arquivo `.xlsm` ja existente.
+- Se `REWARDS_SESSION_DIR` nao for informado, sera usada a pasta local `microsoft_session`.
+- Se `REWARDS_USER_AGENT` ficar vazio, o Playwright usa o user agent natural.
 
-## Contrato com o VBA
+## Contrato com a macro VBA
 
-O Python continua compatível com a macro atual:
+Assinatura esperada:
 
 ```vb
 RegistrarPontosEFormatar(nomeAba, dataAtual, pesquisa, ofertas, mes, ano, totais)
 ```
 
-Detalhes da integração atual:
+Comportamento atual da integracao:
 
-- o Python envia a data no formato DD/MM/AAAA;
-- a coluna D continua intencionalmente preservada para fórmulas da própria planilha;
-- a chamada da macro agora é qualificada pelo nome do workbook aberto, reduzindo risco de executar a macro em outro arquivo Excel por engano.
+- data enviada sem horario (data do dia);
+- chamada da macro qualificada pelo nome do workbook aberto;
+- retorno booleano da macro determina sucesso/falha no Python.
 
 ## Como executar
 
-Fluxo principal com menu interativo:
+Opcao 1 (principal, com menu):
 
 ```bash
 python consulta-rewards.py
 ```
 
-Fluxo autônomo alternativo, sem menu, que coleta dados e testa resgate de R$ 25:
+Opcao 2 (fluxo autonomo):
 
 ```bash
 python scraper.py
 ```
 
-O arquivo iniciar.bat agora resolve a própria pasta automaticamente e tenta ativar a .venv local ou a .venv do diretório pai antes de executar consulta-rewards.py.
+Opcao 3 (atalho Windows):
 
-## Fluxo operacional
-
-```text
-Início
-     -> abre Chromium persistente com anti-detecção básica
-     -> navega para Rewards
-     -> se cair em login, espera autenticação manual
-     -> sincroniza seletores com /earn e /redeem
-     -> modo 1: extrai métricas e envia para o Excel
-     -> modo 2: consulta resgate fixo e personalizado
-Fim
+```bat
+Consulta Rewards.bat
 ```
 
-## Dados coletados
+## Fluxo resumido
 
-As métricas de coleta salvas no Excel são:
+```text
+Inicia navegador persistente
+-> aplica configuracoes de contexto e stealth (se disponivel)
+-> valida login (manual quando necessario)
+-> sincroniza seletores
+-> coleta metricas em /earn
+-> consulta resgate em /redeem
+-> salva no Excel via macro
+```
 
-- Pesquisa do Bing
-- Ofertas
-- Este mês
-- Este ano
-- Pontos totais da conta
+## Limitacoes
 
-O módulo de resgate também informa:
+- Projeto focado em Windows por causa de `pywin32` + COM do Excel.
+- Pode quebrar se o DOM do Rewards mudar significativamente.
+- Usa textos/seletores com foco em interface em portugues.
+- `microsoft_session/` contem dados de sessao e deve ser tratado como sensivel.
 
-- pontos necessários para o valor consultado;
-- pontos faltantes, quando houver;
-- se o saldo atual cobre o resgate.
+## Solucao de problemas
 
-## Limitações atuais do código
+Sessao expirada:
 
-- O projeto é fortemente acoplado ao Windows por causa de pywin32 e da automação COM do Excel.
-- O script depende da estrutura atual do DOM do Rewards, então mudanças de layout podem quebrar a extração.
-- Há seletores e textos de interface acoplados ao idioma exibido na página, principalmente em português.
-- A pasta microsoft_session faz parte do workspace e pode conter dados sensíveis de sessão se for compartilhada indevidamente.
-- O projeto não tenta ser indetectável e não deve ser tratado como bypass de proteção da plataforma.
+- faca login manual na janela aberta pelo Playwright;
+- aguarde redirecionamento para `rewards.bing.com`.
 
-## Solução de problemas
+Falha no Excel:
 
-Sessão expirada:
+- confira `EXCEL_PATH`, `EXCEL_SHEET` e `EXCEL_MACRO_NAME`;
+- confirme que a macro existe e o arquivo e `.xlsm`;
+- confirme Excel instalado e acessivel via COM.
 
-- faça login manualmente na janela aberta do navegador;
-- aguarde o redirecionamento de volta para rewards.bing.com.
+Falha de coleta/resgate:
 
-Falha ao salvar no Excel:
-
-- confirme se EXCEL_PATH existe e aponta para .xlsm;
-- confirme se a macro RegistrarPontosEFormatar existe na planilha;
-- confirme se o Excel está instalado e acessível via COM;
-- se a planilha estiver aberta, o script tenta reaproveitar a instância ativa do Excel.
-
-Falha ao consultar resgate ou coletar métricas:
-
-- rode novamente após login manual;
-- verifique se a interface do site mudou;
-- remova ou regenere seletores.js se ele tiver ficado desatualizado.
-
-## Estado atual de manutenção
-
-Este README descreve o comportamento real observado no código em consulta-rewards.py, scraper.py, utils.py, excel_manager.py e config.py. Ele não assume funcionalidades que ainda não estejam implementadas.
+- execute novamente apos login;
+- atualize/sincronize seletores;
+- valide se a interface do Rewards mudou.
