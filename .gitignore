@@ -1,31 +1,15 @@
-/perfil_familiafelix58b@gmail.com
-/perfil_raphaelfelixrj2306@gmail.com
-/perfil_rogeriofelix2306@gmail.com
-/perfil_rogeriofelixrj@gmail.com
-/microsoft_session
-
-# Configurações sensíveis
+## Ambiente local
+/.venv
+/__pycache__/
 .env
-.env.local
-*.env.local
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
+## Artefatos do scraper
+seletores.js
+/microsoft_session/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
 
-# OS
-.DS_Store
-Thumbs.db
+## Ferramentas e caches futuros
+/.pytest_cache/
+/.ruff_cache/
+/.mypy_cache/
+iniciar.bat (Rewards Automação - Navegador).lnk
