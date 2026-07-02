@@ -75,12 +75,12 @@ async def garantir_login(page, destino_url=None):
                 await navegar_para_url(page, config.URL_LOGIN, timeout=config.TIMEOUT_LOGIN_MS)
 
             await page.wait_for_url("**/rewards.bing.com/**", timeout=config.TIMEOUT_LOGIN_MS)
-            await page.wait_for_load_state("networkidle", timeout=30000)
+            await page.wait_for_load_state("networkidle", timeout=15000)
             print(f"{config.GREEN}✅ Login detectado!{config.RESET}")
 
             if destino_url:
                 await navegar_para_url(page, destino_url)
-                await page.wait_for_load_state("networkidle", timeout=30000)
+                await page.wait_for_load_state("networkidle", timeout=15000)
 
             return True
         except asyncio.TimeoutError:
