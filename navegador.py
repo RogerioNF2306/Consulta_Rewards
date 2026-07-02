@@ -6,7 +6,7 @@ import time
 from playwright.sync_api import sync_playwright
 
 # Importar configurações do .env
-from config import (
+from Config.config import (
     obter_user_agent_por_perfil, 
     obter_hardware_perfil,
     LOCALE, TIMEZONE, URL_REWARDS
@@ -107,7 +107,7 @@ def iniciar_sessao_rewards():
 
             while True:
                 if context.pages == []: break
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(10000)
 
         except KeyboardInterrupt:
             print(f"\nEncerrando sessão de {nome_perfil}...")

@@ -9,7 +9,7 @@ from threading import Thread
 from playwright.sync_api import sync_playwright
 
 # Importar configurações do .env / config
-from config import (
+from config.config import (
     TERMO_BASE, QUANTIDADE_BUSCAS, 
     DELAY_ENTRE_BUSCAS_MIN, DELAY_ENTRE_BUSCAS_MAX,
     DELAY_LEITURA_MIN, DELAY_LEITURA_MAX,

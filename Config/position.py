@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 # Importa as configurações do ecossistema para alinhar o Modo 2 (Playwright)
 try:
-    from config import (
+    from config.config import (
         LOCALE, TIMEZONE, URL_BING,
         obter_user_agent_por_perfil, obter_hardware_perfil
     )

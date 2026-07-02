@@ -11,11 +11,12 @@ echo ╚════════════════════════
 echo.
 echo [1] Pesquisador Unificado (Modo Manual + Automático)
 echo [2] Navegador Stealth (Sessão Interativa)
-echo [3] Consulta Rewards (Informações da Conta)
+echo [3] Consulta Rewards (Informações da Conta e Resgate)
 echo [4] Exibir Configurações Ativas
+echo [5] Atualizar Posição (Mouse)
 echo [0] Sair
 echo.
-set /p opcao="Escolha uma opção (0-4): "
+set /p opcao="Escolha uma opção (0-5): "
 
 if "%opcao%"=="1" (
     cls
@@ -40,7 +41,7 @@ if "%opcao%"=="1" (
     echo.
     echo ▶ Iniciando Consulta Rewards...
     echo.
-    python "%~dp0consulta-rewards.py"
+    python "%~dp0Consulta-Rewards/consulta-rewards.py"
     pause
     cls
     goto inicio
@@ -49,7 +50,17 @@ if "%opcao%"=="1" (
     echo.
     echo ▶ Exibindo Configurações...
     echo.
-    python "%~dp0config.py"
+    python "%~dp0Config/config.py"
+    pause
+    cls
+    goto inicio
+
+) else if "%opcao%"=="5" (
+    cls
+    echo.
+    echo ▶ Atualizando Posição do Mouse...
+    echo.
+    python "%~dp0Config/position.py"
     pause
     cls
     goto inicio
