@@ -35,11 +35,11 @@ def main():
     print(" valores atuais e digite-os nos campos abaixo:\n")
 
     # Coleta de dados interativa
-    pts_pesquisa = obter_pontos_valido(" 🔍 Pontos de Pesquisa do Bing: ")
-    pts_ofertas  = obter_pontos_valido(" 🎯 Pontos de Ofertas / Painel: ")
-    pts_mes      = obter_pontos_valido(" 📅 Acumulado deste Mês: ")
-    pts_ano      = obter_pontos_valido(" 📆 Acumulado deste Ano: ")
-    pts_totais   = obter_pontos_valido(" 💰 Saldo DISPONÍVEL na Conta: ")
+    pts_pesquisa = obter_pontos_valido(" 🔍 Pontos de Pesquisas: ")
+    pts_ofertas  = obter_pontos_valido(" 🎯 Pontos de Ofertas: ")
+    pts_mes      = obter_pontos_valido(" 📅 Acumulado deste mês: ")
+    pts_ano      = obter_pontos_valido(" 📆 Recebidos neste ano: ")
+    pts_totais   = obter_pontos_valido(" 💰 Saldo disponível na Conta: ")
 
     print(f"\n{YELLOW}⏳ Integrando dados com o seu ecossistema Excel...{RESET}")
     
