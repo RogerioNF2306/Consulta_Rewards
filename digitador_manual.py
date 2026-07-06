@@ -15,28 +15,38 @@ RED = "\033[91m"
 RESET = "\033[0m"
 BLUE = "\033[94m"
 
-def obter_pontos_valido(prompt):
-    """Garante que o usuário digite apenas números inteiros"""
+def obter_pontos_valido(prompt, padrao=None):
+    """Garante que o usuário digite apenas números inteiros ou use o valor padrão ao apertar Enter"""
     while True:
         try:
             entrada = input(prompt).strip()
+            
+            # Atalho para cancelar a operação
             if entrada.lower() == 's':
                 print(f"\n{YELLOW}Operação cancelada pelo usuário. Voltando ao menu...{RESET}")
                 sys.exit(2)  # Envia o código 2 (Cancelado) para o arquivo .bat
+            
+            # Se o usuário apertar apenas Enter e houver um padrão definido
+            if entrada == "" and padrao is not None:
+                return padrao
+                
             return int(entrada)
         except ValueError:
-            print(f"{RED}❌ Entrada inválida! Digite um número inteiro válido (ou 'S' para sair).{RESET}")
+            if padrao is not None:
+                print(f"{RED}❌ Entrada inválida! Digite um número, pressione Enter para usar {padrao} ou 'S' para sair.{RESET}")
+            else:
+                print(f"{RED}❌ Entrada inválida! Digite um número inteiro válido (ou 'S' para sair).{RESET}")
 
 def main():
     print(f"{BLUE}{'='*55}{RESET}")
     print(f"{BLUE}📝   PAINEL DE ENTRADA MANUAL - REWARDS   {RESET}")
     print(f"{BLUE}{'='*55}{RESET}")
-    print(f"Aperte 'S' a qualquer momento para sair do programa.\n")
-    print(" Abra o site do Rewards manualmente no seu Edge, veja os")
-    print(" valores atuais e digite-os nos campos abaixo:\n")
+    print(f"Aperte 'S' a qualquer momento para sair.\n")
+    print(" Abra o site do Rewards no link abaixo (ctrl+click)")
+    print(" Site do Rewards Earn: https://rewards.bing.com/earn\n")
 
-    # Coleta de dados interativa
-    pts_pesquisa = obter_pontos_valido(" 🔍 Pontos de Pesquisas: ")
+    # Coleta de dados interativa (com o atalho de Enter = 60 para pesquisas)
+    pts_pesquisa = obter_pontos_valido(" 🔍 Pontos de Pesquisas (Pressione Enter para 60): ", padrao=60)
     pts_ofertas  = obter_pontos_valido(" 🎯 Pontos de Ofertas: ")
     pts_mes      = obter_pontos_valido(" 📅 Acumulado deste mês: ")
     pts_ano      = obter_pontos_valido(" 📆 Recebidos neste ano: ")

@@ -8,8 +8,8 @@ try:
 except ImportError:
     stealth_async = None
 
-import config
-import utils
+import config.config as config
+import config.utils as utils
 from excel_manager import salvar_dados_excel
 
 # Cache simples para evitar reaplicar stealth na mesma page a cada navegação.
