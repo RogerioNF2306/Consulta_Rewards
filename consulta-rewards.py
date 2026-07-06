@@ -8,13 +8,13 @@ raiz_do_projeto = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if raiz_do_projeto not in sys.path:
     sys.path.append(raiz_do_projeto)
 
-import config
-import utils
+import config.config as config
+import config.utils as utils
 
 # Carrega os seletores no boot do projeto para uso imediato pelo scraper.
 utils.inicializar_seletores(verbose=True)
 
-import scraper
+import config.scraper as scraper
 from excel_manager import salvar_dados_excel
 
 # Cores

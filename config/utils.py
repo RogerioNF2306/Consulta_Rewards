@@ -1,7 +1,7 @@
 import json
 import re
 import os
-import config
+import config.config as config
 
 # Cores importadas do config
 GREEN, YELLOW, RED, RESET, BOLD, BLUE = (

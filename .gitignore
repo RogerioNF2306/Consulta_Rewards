@@ -13,3 +13,7 @@ seletores.js
 /.ruff_cache/
 /.mypy_cache/
 iniciar.bat (Rewards Automação - Navegador).lnk
+
+modulo_links/perfil_oh
+modulo_links/seletors.json
+modulo_links/__pycache__/

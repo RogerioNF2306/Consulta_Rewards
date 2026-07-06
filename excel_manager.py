@@ -3,7 +3,7 @@ from datetime import datetime
 import pywintypes
 import win32com.client
 from dotenv import load_dotenv
-import config
+import config.config as config
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
