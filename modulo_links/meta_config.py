@@ -18,7 +18,7 @@ def _get_env_bool(var_name, default=True):
 
 
 def load_meta_env(root_dir):
-    # Utilizando pathlib para definir o caminho da pasta config de forma inteligente
+    # O pathlib monta o caminho automaticamente: root_dir / "config" / ".env"
     env_path = Path(root_dir) / "config" / ".env"
 
     if env_path.exists():
